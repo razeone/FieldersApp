@@ -12,7 +12,7 @@ angular.module('starter.controllers', [])
   $scope.task = Tasks.get($stateParams.taskId);
 })
 
-.controller('MapCtrl', function($scope, $ionicLoading, $compile) {
+.controller('MapCtrl', function($scope, $ionicLoading, $compile, $http) {
       function initialize() {
 
         var myLatlng = new google.maps.LatLng(19.435219, -99.166574);
@@ -26,7 +26,7 @@ angular.module('starter.controllers', [])
             mapOptions);
         
         //Marker + infowindow + angularjs compiled ng-click
-        var contentString = "<div><a ng-click='clickTest()'>Click me!</a></div>";
+        var contentString = "<div><a ng-click='clickTest()'>Aquí está usted</a></div>";
         var compiled = $compile(contentString)($scope);
 
         var infowindow = new google.maps.InfoWindow({
@@ -53,17 +53,39 @@ angular.module('starter.controllers', [])
         }
 
         $scope.loading = $ionicLoading.show({
-          content: 'Getting current location...',
+          content: 'Obteniendo locación...',
           showBackdrop: false
         });
 
         navigator.geolocation.getCurrentPosition(function(pos) {
           $scope.map.setCenter(new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
           $scope.loading = $ionicLoading.hide();
+          $scope.lat = pos.coords.latitude
+          $scope.lng = pos.coords.longitude
         }, function(error) {
-          alert('Unable to get location: ' + error.message);
+          alert('No fue posible obtener la ubicación: ' + error.message);
         });
       };
+
+      $scope.getPoints = function(){
+        $scope.centerOnMe();
+
+        var request = $http({
+        	method: "get",
+        	url: "http://10.105.116.56:4567/getDistance",
+        	data: {
+        		latitud: $scope.lat,
+        		longitud: $scope.lng
+        	}
+        });
+
+        request.success(
+        	function(data){
+        		alert(data);
+        	}
+        	);
+
+      }
 
       initialize();
       
