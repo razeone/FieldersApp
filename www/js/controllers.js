@@ -13,6 +13,19 @@ angular.module('starter.controllers', [])
 })
 
 .controller('MapCtrl', function($scope, $ionicLoading, $compile, $http) {
+
+	function addInfoWindow(marker, message) {
+            var info = message;
+
+            var infoWindow = new google.maps.InfoWindow({
+                content: message
+            });
+
+            google.maps.event.addListener(marker, 'click', function () {
+                infoWindow.open($scope.map, marker);
+            });
+        }
+
       function initialize() {
 
         var myLatlng = new google.maps.LatLng(19.435219, -99.166574);
@@ -26,7 +39,7 @@ angular.module('starter.controllers', [])
             mapOptions);
         
         //Marker + infowindow + angularjs compiled ng-click
-        var contentString = "<div><a ng-click='clickTest()'>Aquí está usted</a></div>";
+        var contentString = "<div><a ng-click='clickTest()'>Corporativo Telmex Parque Vía #190</a></div>";
         var compiled = $compile(contentString)($scope);
 
         var infowindow = new google.maps.InfoWindow({
@@ -36,7 +49,8 @@ angular.module('starter.controllers', [])
         var marker = new google.maps.Marker({
           position: myLatlng,
           map: map,
-          title: 'Uluru (Ayers Rock)'
+          icon: 'img/tmxIcon.png',
+          title: 'Telmex'
         });
 
         google.maps.event.addListener(marker, 'click', function() {
@@ -58,36 +72,92 @@ angular.module('starter.controllers', [])
         });
 
         navigator.geolocation.getCurrentPosition(function(pos) {
+
           $scope.map.setCenter(new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
+          var myLocation = new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+          var fielderMarker = new google.maps.Marker({
+	          position: myLocation,
+	          map: $scope.map,
+	          icon: 'img/identity.png',
+	          title: 'Fielder Telmex'
+	        });
           $scope.loading = $ionicLoading.hide();
-          $scope.lat = pos.coords.latitude
-          $scope.lng = pos.coords.longitude
+          $scope.lat = pos.coords.latitude;
+          $scope.lng = pos.coords.longitude;
         }, function(error) {
           alert('No fue posible obtener la ubicación: ' + error.message);
         });
       };
 
       $scope.getPoints = function(){
-        $scope.centerOnMe();
 
-        var request = $http({
-        	method: "get",
-        	url: "http://10.105.116.56:4567/getDistance",
-        	data: {
-        		latitud: $scope.lat,
-        		longitud: $scope.lng
-        	}
+      	if(!$scope.map) {
+          return;
+        }
+
+        $scope.loading = $ionicLoading.show({
+          content: 'Obteniendo locación...',
+          showBackdrop: false
         });
 
-        request.success(function(data){
-        		
+
+      	navigator.geolocation.getCurrentPosition(function(pos) {
+          $scope.map.setCenter(new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude));
+
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+
+          //alert(lat +" "+ lng);
+
+          var request = $http({
+        	method: "get",
+        	url: "http://172.16.1.125:4567/getPoints?latitud="+lat+"&longitud="+lng
+        	//url: "http://restcountries.eu/rest/v1"
+        	});
+          request.success(function(data){
+        		//alert(data[0].nombre);
+        		for(i = 0;i<data.length;i++){
+					//Marker + infowindow + angularjs compiled ng-click
+					var contentString = "<div><p>Nombre: "+data[i].nombre+"</p>"+
+										"<p>Teléfono: "+data[i].telefono+"</p>"+
+										"<p>Área: "+data[i].area+"</p>"+
+										"<p>División: "+data[i].division+"</p>"+
+										"<p>NPS: "+data[i].nps+"</p>"+
+										"<p>Tenencia: "+data[i].paquete+"</p>"+
+										"<button class='button icon ion-location button-balanced'>Respuesta Cliente</button></div>";
+
+					//var compiled = $compile(contentString)($scope);
+					//var compiled = contentString;
+					var customareLocation = new google.maps.LatLng(data[i].latitud, data[i].longitud);
+					var infowindow = new google.maps.InfoWindow({
+						content: contentString
+					});
+
+
+					cMarker = new google.maps.Marker({
+						position: customareLocation,
+						map: $scope.map,
+						title: 'Cliente '+i,
+						icon: 'img/view-media-artist.png'
+					});
+
+					addInfoWindow(cMarker,contentString);
+				}
+        		$scope.loading = $ionicLoading.hide();
+
         	});
 
-        request.error(function(data){
-
+          request.error(function(data){
+        	alert("Error");
+        	$scope.loading = $ionicLoading.hide();
+        	});
+          
+        }, function(error) {
+        	alert('No fue posible obtener la ubicación: ' + error.message);
         });
-
       }
+
+      
 
       initialize();
       
